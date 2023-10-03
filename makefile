@@ -56,10 +56,10 @@ install-test:
 .PHONY: test test-light
 
 test:
-	@pytest -vx --run-optional-tests=expensive --cov=fdpyutils test
+	@pytest -vx --run-optional-tests=expensive --cov=fdpyutils --doctest-modules test fdpyutils
 
 test-light:
-	@pytest -vx --cov=fdpyutils test
+	@pytest -vx --cov=fdpyutils --doctest-modules test fdpyutils
 
 .PHONY: install-lint
 
@@ -101,3 +101,12 @@ pydocstyle-check:
 
 conda-env:
 	@conda env create --file .conda_env.yml
+
+.PHONY: lint
+
+lint:
+	make black-check
+	make isort-check
+	make flake8
+	make darglint-check
+	make pydocstyle-check
