@@ -14,6 +14,14 @@ def test_einsum():
     B = rand(a * b, c)
 
     # NOTE Need to specify dims ``a, b`` although they could be inferred
-    C = einsum(A, B, "a b c, (a b) c -> (a b) c", a=a, b=b)
+    axes_lengths = dict(a=a, b=b)
+
+    # no rearrange of result tensor
+    C = einsum(A, B, "a b c, (a b) c -> a b c", **axes_lengths)
+    C_truth = einsum(A, B.reshape(a, b, c), "a b c, a b c -> a b c")
+    assert allclose(C, C_truth)
+
+    # rearrange required before returning the result
+    C = einsum(A, B, "a b c, (a b) c -> (a b) c", **axes_lengths)
     C_truth = einsum(A, B.reshape(a, b, c), "a b c, a b c -> a b c").reshape(a * b, c)
     assert allclose(C, C_truth)

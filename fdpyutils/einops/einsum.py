@@ -36,9 +36,8 @@ def einsum(*tensors_and_pattern: Union[Tensor, str], **axes_lengths: int) -> Ten
         lefts = lefts.split(",")
         lefts_ungrouped = [l.replace("(", "").replace(")", "") for l in lefts]
         tensors_ungrouped = [
-            rearrange(t, " -> ".join([l, l_u]), **axes_lengths)
+            rearrange(t, " -> ".join([l, l_u]), **axes_lengths) if l != l_u else t
             for t, l, l_u in zip(tensors, lefts, lefts_ungrouped)
-            if l != l_u else t
         ]
 
         # compute the result with un-grouped indices
@@ -47,6 +46,10 @@ def einsum(*tensors_and_pattern: Union[Tensor, str], **axes_lengths: int) -> Ten
         result_ungrouped = einops_einsum(*tensors_ungrouped, pattern_ungrouped)
 
         # group the indices in the result tensor
-        return rearrange(
-            result_ungrouped, " -> ".join([right_ungrouped, right]), **axes_lengths
-        ) if right_ungrouped != right else result_ungrouped
+        return (
+            rearrange(
+                result_ungrouped, " -> ".join([right_ungrouped, right]), **axes_lengths
+            )
+            if right_ungrouped != right
+            else result_ungrouped
+        )
