@@ -1,0 +1,1 @@
+::: fdpyutils.einops.einsum.einsum

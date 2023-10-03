@@ -10,11 +10,10 @@ from einops.einops import Tensor
 def einsum(*tensors_and_pattern: Union[Tensor, str], **axes_lengths: int) -> Tensor:
     """Same as ``einops.einsum`` but supports index un-grouping notation.
 
-    # noqa: B950
+    For example, the following operation does not work (yet) in ``einops.einsum``, but
+    works with this version: ``einsum(A, B, '(a b) c, a b c -> (a b) c', a=a, b=b)``.
 
-    For example, the following operation does not work (yet) in ``einops.einsum``
-    (https://github.com/arogozhnikov/einops/blob/fcd36c9b017d52e452a301e75c1373b75ec23ee0/einops/einops.py#L833-L834),
-    but works with this version: ``einsum(A, B, '(a b) c, a b c -> (a b) c', a=a, b=b)``.
+    (More information [here](https://github.com/arogozhnikov/einops/blob/fcd36c9b017d52e452a301e75c1373b75ec23ee0/einops/einops.py#L833-L834)) # noqa: B950
 
     Args:
         tensors_and_pattern:
