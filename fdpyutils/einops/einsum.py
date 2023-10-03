@@ -5,7 +5,6 @@ from typing import Union
 from einops import einsum as einops_einsum
 from einops import rearrange
 from einops.einops import Tensor
-from torch import allclose, manual_seed, rand
 
 
 def einsum(*tensors_and_pattern: Union[Tensor, str], **axes_lengths: int) -> Tensor:
