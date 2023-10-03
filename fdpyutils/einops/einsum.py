@@ -5,10 +5,13 @@ from typing import Union
 from einops import einsum as einops_einsum
 from einops import rearrange
 from einops.einops import Tensor
+from torch import allclose, manual_seed, rand
 
 
 def einsum(*tensors_and_pattern: Union[Tensor, str], **axes_lengths: int) -> Tensor:
     """Same as ``einops.einsum`` but supports index un-grouping notation.
+
+    # noqa: B950
 
     For example, the following operation does not work (yet) in ``einops.einsum``
     (https://github.com/arogozhnikov/einops/blob/fcd36c9b017d52e452a301e75c1373b75ec23ee0/einops/einops.py#L833-L834),
@@ -37,7 +40,7 @@ def einsum(*tensors_and_pattern: Union[Tensor, str], **axes_lengths: int) -> Ten
         # un-group the operands
         lefts, right = pattern.split("->")
         lefts = lefts.split(",")
-        lefts_ungrouped = [l.replace("(", "").replace(")", "") for l in lefts]
+        lefts_ungrouped = [left.replace("(", "").replace(")", "") for left in lefts]
         tensors_ungrouped = [
             rearrange(t, " -> ".join([l, l_u]), **axes_lengths) if l != l_u else t
             for t, l, l_u in zip(tensors, lefts, lefts_ungrouped)
@@ -56,3 +59,29 @@ def einsum(*tensors_and_pattern: Union[Tensor, str], **axes_lengths: int) -> Ten
             if right_ungrouped != right
             else result_ungrouped
         )
+
+
+def test_einsum():
+    """Test einsum with support for index un-grouping syntax."""
+    manual_seed(0)
+
+    a, b, c = (3, 4, 5)
+    A = rand(a, b, c)
+    B = rand(a * b, c)
+
+    # NOTE Need to specify dims ``a, b`` although they could be inferred
+    axes_lengths = dict(a=a, b=b)
+
+    # no rearrange of result tensor
+    C = einsum(A, B, "a b c, (a b) c -> a b c", **axes_lengths)
+    C_truth = einsum(A, B.reshape(a, b, c), "a b c, a b c -> a b c")
+    assert allclose(C, C_truth)
+
+    # rearrange required before returning the result
+    C = einsum(A, B, "a b c, (a b) c -> (a b) c", **axes_lengths)
+    C_truth = einsum(A, B.reshape(a, b, c), "a b c, a b c -> a b c").reshape(a * b, c)
+    assert allclose(C, C_truth)
+
+
+if __name__ == "__main__":
+    test_einsum()

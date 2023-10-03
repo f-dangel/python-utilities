@@ -101,3 +101,12 @@ pydocstyle-check:
 
 conda-env:
 	@conda env create --file .conda_env.yml
+
+.PHONY: lint
+
+lint:
+	make black-check
+	make isort-check
+	make flake8
+	make darglint-check
+	make pydocstyle-check
