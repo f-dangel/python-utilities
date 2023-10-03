@@ -29,6 +29,15 @@ def einsum(*tensors_and_pattern: Union[Tensor, str], **axes_lengths: int) -> Ten
 
     Raises:
         NotImplementedError: If the pattern contains unsupported features.
+
+    Examples:
+        >>> from fdpyutils.einops.einsum import einsum
+        >>> from torch import rand, allclose
+        >>> a, b, c = 3, 4, 5 # dimensions
+        >>> A, B = rand(a, b, c), rand(a * b, c) # operands
+        >>> C = einsum(A, B, 'a b c, (a b) c -> (a b) c', a=a, b=b)
+        >>> allclose(C, A.reshape(a * b, c) * B)
+        True
     """
     try:
         return einops_einsum(*tensors_and_pattern)
@@ -59,29 +68,3 @@ def einsum(*tensors_and_pattern: Union[Tensor, str], **axes_lengths: int) -> Ten
             if right_ungrouped != right
             else result_ungrouped
         )
-
-
-def test_einsum():
-    """Test einsum with support for index un-grouping syntax."""
-    manual_seed(0)
-
-    a, b, c = (3, 4, 5)
-    A = rand(a, b, c)
-    B = rand(a * b, c)
-
-    # NOTE Need to specify dims ``a, b`` although they could be inferred
-    axes_lengths = dict(a=a, b=b)
-
-    # no rearrange of result tensor
-    C = einsum(A, B, "a b c, (a b) c -> a b c", **axes_lengths)
-    C_truth = einsum(A, B.reshape(a, b, c), "a b c, a b c -> a b c")
-    assert allclose(C, C_truth)
-
-    # rearrange required before returning the result
-    C = einsum(A, B, "a b c, (a b) c -> (a b) c", **axes_lengths)
-    C_truth = einsum(A, B.reshape(a, b, c), "a b c, a b c -> a b c").reshape(a * b, c)
-    assert allclose(C, C_truth)
-
-
-if __name__ == "__main__":
-    test_einsum()
