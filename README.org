@@ -1,8 +1,0 @@
-#+author: Felix Dangel
-#+title: Felix Dangel's python utilities
-
-This repository contains a library that bundles some Python code I frequently use. It used to be copy-pasted to different projects. Now I decided that maintaining it in a separate package is more sustainable.
-
-* Getting started with development
-1. Create the =conda= environment: =make conda-env=
-2. Automatically enable it in the repo: =direnv allow=
