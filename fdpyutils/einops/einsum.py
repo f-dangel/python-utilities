@@ -23,6 +23,9 @@ def einsum(*tensors_and_pattern: Union[Tensor, str], **axes_lengths: int) -> Ten
 
     Returns:
         Tensor of the same type as input, after processing with einsum.
+
+    Raises:
+        NotImplementedError: If the pattern contains unsupported features.
     """
     try:
         return einops_einsum(*tensors_and_pattern)
