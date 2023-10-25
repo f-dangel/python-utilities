@@ -3,10 +3,13 @@ site_url: https://https://readthedocs.org/projects/fdpyutils/
 repo_url: https://github.com/f-dangel/python-utilities/
 repo_name: f-dangel/python-utilities
 site_author: Felix Dangel
+watch:
+  - fdpyutils
 nav:
     - Getting Started: index.md
     - Utility functions:
         - einops: api/einops.md
+        - tikz: api/tikz.md
 theme:
     name: material
     features:
