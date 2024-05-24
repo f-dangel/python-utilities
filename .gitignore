@@ -3,3 +3,12 @@
 .eggs
 /.coverage
 **.DS_Store
+**.aux
+**.log
+**.fdb_latexmk
+**.fls
+**/auto
+**.pdf-view-restore
+**.synctex.gz
+**.pdf
+**.tex
