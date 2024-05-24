@@ -91,13 +91,7 @@ PLACEHOLDER_EXTRA_COMMANDS
   \end{axis}
 \end{tikzpicture}
 
-\end{document}
-
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: t
-%%% End:
-"""
+\end{document}"""
 
     def __init__(self, mat: Union[Tensor, ndarray]) -> None:
         """Store the matrix internally.
@@ -164,15 +158,19 @@ PLACEHOLDER_EXTRA_COMMANDS
             ("PLACEHOLDER_EXTRA_PREAMBLE", "\n".join(self.extra_preamble)),
             (
                 "PLACEHOLDER_COLORBAR_MIN",
-                f"% color bar minimum\n    point meta min={self.vmin}"
-                if self.vmin is not None
-                else "",
+                (
+                    f"% color bar minimum\n    point meta min={self.vmin}"
+                    if self.vmin is not None
+                    else ""
+                ),
             ),
             (
                 "PLACEHOLDER_COLORBAR_MAX",
-                f"% color bar maximum\n    point meta max={self.vmax}"
-                if self.vmax is not None
-                else "",
+                (
+                    f"% color bar maximum\n    point meta max={self.vmax}"
+                    if self.vmax is not None
+                    else ""
+                ),
             ),
         ]:
             template = template.replace(placeholder, replacement)
