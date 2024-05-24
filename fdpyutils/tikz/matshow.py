@@ -12,6 +12,11 @@ from torch import Tensor
 class TikzMatrix:
     """Class to visualize a matrix with TikZ.
 
+    - Example image
+      ![](assets/TikzMatrix.png)
+    - I used this to visualize the structured matrices in our
+      [SINGD paper](https://arxiv.org/pdf/2312.05705).
+
     Attributes:
         TEMPLATE: Template TikZ code containing placeholders that will be substituted
             with content when saving a figure.
@@ -31,6 +36,8 @@ class TikzMatrix:
 \pgfplotsset{compat=1.18}
 \usepgfplotslibrary{colorbrewer}
 \usepgfplotslibrary{colormaps}
+
+PLACEHOLDER_EXTRA_PREAMBLE
 
 \begin{document}
 
@@ -63,6 +70,12 @@ class TikzMatrix:
     % https://tex.stackexchange.com/a/350927
     PLACEHOLDER_COLORMAP,
     canvasonly,
+    % explicit limits required for plotting row/column vectors
+    xmin=0, xmax=PLACEHOLDER_XMAX,
+    ymin=0, ymax=PLACEHOLDER_YMAX,
+    % explicit width and height to preserve aspect ratio of the matrix
+    width=PLACEHOLDER_WIDTHcm, height=PLACEHOLDER_HEIGHTcm,
+    scale only axis,
     ]
     \addplot[
     matrix plot,
@@ -74,16 +87,11 @@ class TikzMatrix:
     ] table[meta=z] {
 PLACEHOLDER_CONTENT
     };
+PLACEHOLDER_EXTRA_COMMANDS
   \end{axis}
 \end{tikzpicture}
 
-\end{document}
-
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: t
-%%% End:
-"""
+\end{document}"""
 
     def __init__(self, mat: Union[Tensor, ndarray]) -> None:
         """Store the matrix internally.
@@ -103,6 +111,9 @@ PLACEHOLDER_CONTENT
         self.vmin: Union[float, None] = 0.0  # color bar minimum
         self.vmax: Union[float, None] = 1.0  # color bar maximum
 
+        self.extra_commands = []
+        self.extra_preamble = []
+
     def save(self, savepath: str, compile: bool = False):
         """Save the matrix plot as standalone TikZ figure and maybe build to pdf.
 
@@ -111,32 +122,55 @@ PLACEHOLDER_CONTENT
             compile: Whether to compile the TikZ figure to pdf. Default is `False`.
         """
         template = self.TEMPLATE
-        rows, cols = self.mat.shape
+
+        # NOTE matrix plot requires two rows and columns to figure out the cell size.
+        # For single rows/columns we expand them into two and then limit their
+        # visibility by setting the axis limits.
+        y_max, x_max = self.mat.shape
+
+        mat = self.mat
+        if y_max == 1:
+            assert isinstance(mat, Tensor)
+            mat = mat.expand(2, -1)
+        elif x_max == 1:
+            assert isinstance(mat, Tensor)
+            mat = mat.expand(-1, 2)
+        rows, cols = mat.shape
 
         content = ["x\ty\tz"]
         content.extend(
-            f"{float(col + 0.5)}\t{float(row + 0.5)}\t{self.mat[row, col]}"
+            f"{float(col + 0.5)}\t{float(row + 0.5)}\t{mat[row, col]}"
             for row, col in product(range(rows), range(cols))
         )
         content = "\n".join(content)
 
         for placeholder, replacement in [
             ("PLACEHOLDER_CONTENT", content),
+            ("PLACEHOLDER_XMAX", str(x_max)),
+            ("PLACEHOLDER_YMAX", str(y_max)),
+            ("PLACEHOLDER_WIDTH", str(2 * x_max)),
+            ("PLACEHOLDER_HEIGHT", str(2 * y_max)),
             ("PLACEHOLDER_ROWS", str(rows)),
             ("PLACEHOLDER_COLS", str(cols)),
             ("PLACEHOLDER_COLORMAP", self.colormap),
             ("PLACEHOLDER_GRID", self.grid),
+            ("PLACEHOLDER_EXTRA_COMMANDS", "\n".join(self.extra_commands)),
+            ("PLACEHOLDER_EXTRA_PREAMBLE", "\n".join(self.extra_preamble)),
             (
                 "PLACEHOLDER_COLORBAR_MIN",
-                f"% color bar minimum\n    point meta min={self.vmin}"
-                if self.vmin is not None
-                else "",
+                (
+                    f"% color bar minimum\n    point meta min={self.vmin}"
+                    if self.vmin is not None
+                    else ""
+                ),
             ),
             (
                 "PLACEHOLDER_COLORBAR_MAX",
-                f"% color bar maximum\n    point meta max={self.vmax}"
-                if self.vmax is not None
-                else "",
+                (
+                    f"% color bar maximum\n    point meta max={self.vmax}"
+                    if self.vmax is not None
+                    else ""
+                ),
             ),
         ]:
             template = template.replace(placeholder, replacement)
