@@ -86,8 +86,6 @@ class TikzConv2d:
         self.O2 = self.pattern2.shape[1]
 
         # store all tensors with separated channel groups
-        print(x.shape)
-        print(self.G)
         x = rearrange(x, "n (g c_in) i1 i2 -> n g c_in i1 i2", g=self.G)
         weight = rearrange(
             weight, "(g c_out) c_in k1 k2 -> g c_out c_in k1 k2", g=self.G
