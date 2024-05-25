@@ -61,8 +61,6 @@ class TikzConv2d:
                 f"Expected 4d `weight` and `x`, but got {weight.ndim}d and {x.ndim}d."
             )
         self.savedir = savedir
-        self.fibresdir = path.join(savedir, "static_fibres")
-        self.tensordir = path.join(savedir, "static_tensors")
 
         # store hyper-parameters
         self.N, self.C_in, self.I1, self.I2 = x.shape
@@ -154,7 +152,8 @@ class TikzConv2d:
         Args:
             compile: Whether to compile the TikZ code into a pdf image.
         """
-        makedirs(self.fibresdir, exist_ok=True)
+        fibresdir = path.join(self.savedir, "static_fibres")
+        makedirs(fibresdir, exist_ok=True)
 
         N_range = list(range(self.N))
         G_range = list(range(self.G))
@@ -163,7 +162,7 @@ class TikzConv2d:
 
         # plot the input fibres
         for n, g, c_in in product(N_range, G_range, C_in_range):
-            savepath = path.join(self.fibresdir, f"input_n_{n}_g_{g}_c_in_{c_in}.tex")
+            savepath = path.join(fibresdir, f"input_n_{n}_g_{g}_c_in_{c_in}.tex")
             matrix = self.custom_tikz_matrix(self.x[n, g, c_in])
             self.highlight_padding(matrix)
             matrix.save(savepath, compile=compile)
@@ -171,7 +170,7 @@ class TikzConv2d:
         # plot the weight fibres
         for g, c_out, c_in in product(G_range, C_out_range, C_in_range):
             savepath = path.join(
-                self.fibresdir, f"weight_g_{g}_c_out_{c_out}_c_in_{c_in}.tex"
+                fibresdir, f"weight_g_{g}_c_out_{c_out}_c_in_{c_in}.tex"
             )
             self.custom_tikz_matrix(self.weight[g, c_out, c_in]).save(
                 savepath, compile=compile
@@ -179,29 +178,21 @@ class TikzConv2d:
 
         # plot the output fibres
         for n, g, c_out in product(N_range, G_range, C_out_range):
-            savepath = path.join(
-                self.fibresdir, f"output_n_{n}_g_{g}_c_out_{c_out}.tex"
-            )
+            savepath = path.join(fibresdir, f"output_n_{n}_g_{g}_c_out_{c_out}.tex")
             self.custom_tikz_matrix(self.output[n, g, c_out]).save(
                 savepath, compile=compile
             )
 
-    def _generate_tensors(self, compile: bool):
-        """Visualize the input/output/weight tensors.
-
-        Requires that the fibres have been generated first by calling
-        `self.create_fibres`. This function combines the fibres into a single pdf image.
+    @staticmethod
+    def _combine_fibres_into_tensor(
+        dims: Tuple[int, int, int], filenames: Dict[Tuple[int, int, int], str]
+    ) -> str:
+        """Create TikZ image that lays out the fibres of a 5d tensor into a single one.
 
         Args:
-            compile: Whether to compile the TikZ code into a pdf image.
+            dims: The dimensions of the tensor's three leading axes.
+            filenames: Mapping from the three leading indices to the fiber's file name.
         """
-        makedirs(self.tensordir, exist_ok=True)
-
-        N_range = list(range(self.N))
-        G_range = list(range(self.G))
-        C_in_range = list(range(self.C_in // self.G))
-        C_out_range = list(range(self.C_out // self.G))
-
         # generic template for compiling tensors to .pdf
         TEX_TEMPLATE = r"""\documentclass[tikz]{standalone}
 
@@ -214,113 +205,85 @@ TENSOR
 \end{tikzpicture}
 \end{document}"""
 
-        # combine the output fibres into a tensor
-        savepath = path.join(self.tensordir, "output.tex")
+        D1, D2, D3 = dims
 
-        # data points are arranged vertically,
-        # each is a node containing a stack of channels
-        data_points = []
-        for n in N_range:
-            nodes = []
-            for g, c_out in product(G_range[::-1], C_out_range[::-1]):
-                fibre = path.join(
-                    self.fibresdir, f"output_n_{n}_g_{g}_c_out_{c_out}.pdf"
-                )
-                xshift = (1.6 + 0.6 * (self.C_out // self.G - 1)) * g + 0.6 * c_out
-                yshift = (2 + 0.8 * (self.C_out // self.G - 1)) * g + 0.8 * c_out
-                nodes.append(
+        # first dimension is laid out vertically
+        vertical = []
+        for d1 in range(D1):
+            # second and third dimensions are laid out depthwise
+            depthwise = []
+            for d2, d3 in product(list(range(D2))[::-1], list(range(D3))[::-1]):
+                fibre = filenames[d1, d2, d3]
+                xshift = (1.6 + 0.6 * (D3 - 1)) * d2 + 0.6 * d3
+                yshift = (2 + 0.8 * (D3 - 1)) * d2 + 0.8 * d3
+                depthwise.append(
                     r"\n"
                     + f"ode [opacity=0.9, xshift={xshift}cm, yshift={yshift}cm]"
-                    + " {"
-                    + r"\includegraphics{"
+                    + r" {\includegraphics{"
                     + fibre
                     + "}};"
                 )
-            node = (
+            vertical.append(
                 r"""\node [anchor=north] at (current bounding box.south) {%
-\begin{tikzpicture}"""
-                + "\n\t".join(nodes)
-                + "\n"
-                + r"\end{tikzpicture}"
-                + "\n"
-                + r"};%"
+\begin{tikzpicture}
+TENSOR
+\end{tikzpicture}
+};%""".replace(
+                    "TENSOR", "\n\t".join(depthwise)
+                )
             )
-            data_points.append(node)
 
-        code = TEX_TEMPLATE.replace("TENSOR", "\n".join(data_points))
+        return TEX_TEMPLATE.replace("TENSOR", "\n".join(vertical))
+
+    def _generate_tensors(self, compile: bool):
+        """Visualize the input/output/weight tensors.
+
+        Requires that the fibres have been generated first by calling
+        `self.create_fibres`. This function combines the fibres into a single pdf image.
+
+        Args:
+            compile: Whether to compile the TikZ code into a pdf image.
+        """
+        fibresdir = path.join(self.savedir, "static_fibres")
+        tensordir = path.join(self.savedir, "static_tensors")
+        makedirs(tensordir, exist_ok=True)
+
+        N_range = list(range(self.N))
+        G_range = list(range(self.G))
+        C_in_range = list(range(self.C_in // self.G))
+        C_out_range = list(range(self.C_out // self.G))
+
+        # combine the output fibres into a tensor
+        dims = (self.N, self.G, self.C_out // self.G)
+        filenames = {
+            (n, g, c): path.join(fibresdir, f"output_n_{n}_g_{g}_c_out_{c}.pdf")
+            for n, g, c in product(N_range, G_range, C_out_range)
+        }
+        code = self._combine_fibres_into_tensor(dims, filenames)
+        savepath = path.join(tensordir, "output.tex")
         self.write(code, savepath, compile=compile)
 
         # combine the input fibres into a tensor
-        savepath = path.join(self.tensordir, "input.tex")
-
-        # data points are placed vertically,
-        # each is a node containing a stack of channels
-        data_points = []
-        for n in N_range:
-            nodes = []
-            for g, c_in in product(G_range[::-1], C_in_range[::-1]):
-                fibre = path.join(self.fibresdir, f"input_n_{n}_g_{g}_c_in_{c_in}.pdf")
-                xshift = (1.6 + 0.6 * (self.C_in // self.G - 1)) * g + 0.6 * c_in
-                yshift = (2 + 0.8 * (self.C_in // self.G - 1)) * g + 0.8 * c_in
-                nodes.append(
-                    r"\n"
-                    + f"ode [opacity=0.9, xshift={xshift}cm, yshift={yshift}cm]"
-                    + " {"
-                    + r"\includegraphics{"
-                    + fibre
-                    + "}};"
-                )
-            node = (
-                r"""\node [anchor=north] at (current bounding box.south) {%
-\begin{tikzpicture}"""
-                + "\n\t".join(nodes)
-                + "\n"
-                + r"\end{tikzpicture}"
-                + "\n"
-                + r"};%"
-            )
-            data_points.append(node)
-
-        code = TEX_TEMPLATE.replace("TENSOR", "\n".join(data_points))
+        dims = (self.N, self.G, self.C_in // self.G)
+        filenames = {
+            (n, g, c): path.join(fibresdir, f"input_n_{n}_g_{g}_c_in_{c}.pdf")
+            for n, g, c in product(N_range, G_range, C_in_range)
+        }
+        code = self._combine_fibres_into_tensor(dims, filenames)
+        savepath = path.join(tensordir, "input.tex")
         self.write(code, savepath, compile=compile)
 
         # combine the weight fibres into a tensor
-        weight_savepath = path.join(self.tensordir, "weight.tex")
-
-        # the kernel elements that produce one output channel are stacked vertically,
-        # each such kernel element is a node containing a stack of fibres
-        # plot the weight tensorfibres for the current frame
-        commands = []
-        for c_out in C_out_range:
-            nodes = []
-            for g, c_in in product(G_range[::-1], C_in_range[::-1]):
-                fibre = path.join(
-                    self.fibresdir, f"weight_g_{g}_c_out_{c_out}_c_in_{c_in}.pdf"
-                )
-                xshift = (1.6 + 0.6 * (self.C_in // self.G - 1)) * g + 0.6 * c_in
-                yshift = (2 + 0.8 * (self.C_in // self.G - 1)) * g + 0.8 * c_in
-                nodes.append(
-                    r"\n"
-                    + f"ode [opacity=0.9, xshift={xshift}cm, yshift={yshift}cm]"
-                    + " {"
-                    + r"\includegraphics{"
-                    + fibre
-                    + "}};"
-                )
-
-            node = (
-                r"""\node [anchor=north] at (current bounding box.south) {%
-\begin{tikzpicture}"""
-                + "\n\t".join(nodes)
-                + "\n"
-                + r"\end{tikzpicture}"
-                + "\n"
-                + r"};%"
+        dims = (self.C_out // self.G, self.G, self.C_in // self.G)
+        filenames = {
+            (c_out, g, c_in): path.join(
+                fibresdir, f"weight_g_{g}_c_out_{c_out}_c_in_{c_in}.pdf"
             )
-            commands.append(node)
-
-        code = TEX_TEMPLATE.replace("TENSOR", "\n".join(commands))
-        self.write(code, weight_savepath, compile=compile)
+            for c_out, g, c_in in product(C_out_range, G_range, C_in_range)
+        }
+        code = self._combine_fibres_into_tensor(dims, filenames)
+        savepath = path.join(tensordir, "weight.tex")
+        self.write(code, savepath, compile=compile)
 
     def highlight_padding(self, matrix: TikzMatrix, color: str = "VectorBlue"):
         """Highlight the padding pixels in a TikZ matrix of a 2d slice of the input.
