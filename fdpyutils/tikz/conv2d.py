@@ -18,7 +18,7 @@ class TikzConv2d:
 
     Examples:
         >>> from torch import manual_seed, rand
-        >>> manual_seed(0)
+        >>> _ = manual_seed(0)
         >>> # convolution hyper-parameters
         >>> N, C_in, I1, I2 = 2, 2, 4, 5
         >>> G, C_out, K1, K2 = 1, 3, 2, 3
