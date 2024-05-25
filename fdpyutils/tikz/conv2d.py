@@ -129,9 +129,13 @@ class TikzConv2d:
 \begin{tikzpicture}
   \node (input) {\includegraphics{DATAPATH/static_tensors/input}};
   \node [right=1cm of input] (star) {$\star$};
-  \node [right=1cm of star] (kernel) {\includegraphics{DATAPATH/static_tensors/weight}};
+  \node [right=1cm of star] (kernel) {%
+    \includegraphics{DATAPATH/static_tensors/weight}%
+  };
   \node [right=1cm of kernel] (equal) {$=$};
-  \node [right=1cm of equal] (output) {\includegraphics{DATAPATH/static_tensors/output}};
+  \node [right=1cm of equal] (output) {%
+    \includegraphics{DATAPATH/static_tensors/output}%
+  };
 \end{tikzpicture}
 \end{document}"""
         code = TEX_TEMPLATE.replace("DATAPATH", self.savedir)
@@ -187,8 +191,8 @@ class TikzConv2d:
     def _generate_tensors(self, compile: bool):
         """Visualize the input/output/weight tensors.
 
-        Requires that the fibres have been generated first by calling `self.create_fibres`.
-        This function combines the fibres into a single pdf image.
+        Requires that the fibres have been generated first by calling
+        `self.create_fibres`. This function combines the fibres into a single pdf image.
 
         Args:
             compile: Whether to compile the TikZ code into a pdf image.
@@ -320,14 +324,13 @@ TENSOR
         code = TEX_TEMPLATE.replace("TENSOR", "\n".join(commands))
         self.write(code, weight_savepath, compile=compile)
 
-    def highlight_padding(
-        self, matrix: TikzMatrix, color: str = "VectorBlue"
-    ) -> TikzMatrix:
+    def highlight_padding(self, matrix: TikzMatrix, color: str = "VectorBlue"):
         """Highlight the padding pixels in a TikZ matrix of a 2d slice of the input.
 
         Args:
             matrix: TikZ matrix of a 2d slice of the input.
-            color: Colour to highlight the padding pixels with. Defaults to `"VectorBlue"`.
+            color: Colour to highlight the padding pixels with. Defaults to
+                `"VectorBlue"`.
         """
         # for shorter notation
         I1, I2 = self.I1, self.I2
@@ -339,8 +342,6 @@ TENSOR
                 highlight.extend(({"x": i2, "y": i1, "fill": color},))
         for kwargs in highlight:
             self.highlight(matrix, **kwargs)
-
-        return matrix
 
     @staticmethod
     def normalize(tensor: Tensor) -> Tensor:

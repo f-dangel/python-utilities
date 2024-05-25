@@ -1,4 +1,4 @@
-"""Test visualization of 2d convolution"""
+"""Test visualization of 2d convolution."""
 
 from os import path
 from test.utils import DOC_ASSETS_DIR, RUNNING_IN_CI, convert_pdf_to_png
