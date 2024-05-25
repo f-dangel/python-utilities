@@ -12,21 +12,21 @@ from torch import Tensor
 class TikzMatrix:
     """Class to visualize a matrix with TikZ.
 
-    - Example image
-      ![](assets/TikzMatrix.png)
-    - I used this to visualize the structured matrices in our
-      [SINGD paper](https://arxiv.org/pdf/2312.05705).
-
     Attributes:
         TEMPLATE: Template TikZ code containing placeholders that will be substituted
             with content when saving a figure.
 
     Examples:
         >>> from numpy import linspace
-        >>> mat = linspace(0, 1, num=9).reshape(3, 3)
+        >>> mat = linspace(0, 1, num=30).reshape(3, 10)
         >>> savepath = "mat.tex"
         >>> # NOTE to compile, you need `pdflatex`
         >>> TikzMatrix(mat).save(savepath, compile=False)
+
+    - Example image
+      ![](assets/TikzMatrix.png)
+    - I used this to visualize the structured matrices in our
+      [SINGD paper](https://arxiv.org/pdf/2312.05705).
     """
 
     TEMPLATE: str = r"""
