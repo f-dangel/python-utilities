@@ -188,6 +188,9 @@ class TikzConv2d:
         Args:
             dims: The dimensions of the tensor's three leading axes.
             filenames: Mapping from the three leading indices to the fiber's file name.
+
+        Returns:
+            The TikZ code for the tensor.
         """
         # generic template for compiling tensors to .pdf
         TEX_TEMPLATE = r"""\documentclass[tikz]{standalone}
@@ -378,7 +381,7 @@ class TikzConv2dAnimated(TikzConv2d):
     """Class for visualizing animated 2d convolutions with TikZ.
 
     Examples:
-        >>> from torch import manual_seed
+        >>> from torch import manual_seed, rand
         >>> _ = manual_seed(0)
         >>> N, C_in, I1, I2 = 2, 2, 3, 4
         >>> G, C_out, K1, K2 = 1, 3, 2, 3
@@ -402,6 +405,18 @@ class TikzConv2dAnimated(TikzConv2d):
     GROUP_COLORS = ["VectorOrange", "VectorTeal", "VectorPink"]
 
     def save(self, compile: bool = True, max_frames: Optional[int] = None):
+        """Create the frames of the convolution's input, weight, and output tensors.
+
+        This is done in three steps. For each frame:
+
+        1.) Generate the fibres (matrix slices) of the input/weight/output tensors.
+        2.) Combine the fibres into the full tensors.
+        3.) Compile the full tensors into one pdf image.
+
+        Args:
+            compile: Whether to compile the TikZ code into a pdf image. Default: `True`.
+            max_frames: Maximum number of frames to generate. Default: `None`.
+        """
         self._generate_fibres(compile=compile, max_frames=max_frames)
         self._generate_tensors(compile=compile, max_frames=max_frames)
 
@@ -437,7 +452,7 @@ CONTENT
         savepath = path.join(self.savedir, "example.tex")
         self.write(code, savepath, compile=compile)
 
-    def _generate_fibres(
+    def _generate_fibres(  # noqa: C901
         self, compile: bool = True, max_frames: Optional[int] = None
     ) -> None:
         """Visualize the input/output/weight fibres during the convolution.
