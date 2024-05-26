@@ -390,8 +390,8 @@ class TikzConv2dAnimated(TikzConv2d):
         >>> x = rand(N, C_in, I1, I2)
         >>> # NOTE to compile, you need `pdflatex`
         >>> TikzConv2dAnimated(weight, x, "conv2d", padding=P).save(
-        >>>     compile=False, max_frames=10
-        >>> )
+        ...     compile=False, max_frames=10
+        ... )
 
     - Example animation (padding pixels are highlighted)
       ![](assets/TikzConv2dAnimated/example.gif)
