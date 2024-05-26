@@ -4,3 +4,8 @@
     options:
       members:
       - save
+
+::: fdpyutils.tikz.conv2d.TikzConv2dAnimated
+    options:
+      members:
+      - save
