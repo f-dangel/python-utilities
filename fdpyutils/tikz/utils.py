@@ -13,7 +13,8 @@ def write(code: str, savepath: str, compile: bool = True) -> None:
         compile: Whether to compile the TikZ code to a PDF.
     """
     savedir = path.dirname(savepath)
-    makedirs(savedir, exist_ok=True)
+    if savedir:
+        makedirs(savedir, exist_ok=True)
 
     with open(savepath, "w") as f:
         f.write(code)
