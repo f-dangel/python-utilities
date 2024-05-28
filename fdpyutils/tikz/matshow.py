@@ -1,12 +1,12 @@
 """Contains functionality to visualize matrices."""
 
 from itertools import product
-from os import path
-from subprocess import run
 from typing import Union
 
 from numpy import ndarray
 from torch import Tensor
+
+from fdpyutils.tikz.utils import write
 
 
 class TikzMatrix:
@@ -175,14 +175,4 @@ PLACEHOLDER_EXTRA_COMMANDS
         ]:
             template = template.replace(placeholder, replacement)
 
-        with open(savepath, "w") as f:
-            f.write(template)
-
-        if compile:
-            cmd = [
-                "pdflatex",
-                "-output-directory",
-                path.dirname(savepath),
-                path.basename(savepath),
-            ]
-            run(cmd, check=True)
+        write(template, savepath, compile=compile)

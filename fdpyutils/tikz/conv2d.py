@@ -2,7 +2,6 @@
 
 from itertools import product
 from os import makedirs, path
-from subprocess import run
 from typing import Dict, Optional, Tuple
 
 from einconv import index_pattern
@@ -11,6 +10,7 @@ from torch import Tensor
 from torch.nn.functional import pad
 
 from fdpyutils.tikz.matshow import TikzMatrix
+from fdpyutils.tikz.utils import write
 
 
 class TikzConv2d:
@@ -106,9 +106,9 @@ class TikzConv2d:
 
         This is done in three steps:
 
-        1.) Generate the fibres (matrix slices) of the input/weight/output tensors.
-        2.) Combine the fibres into the full tensors.
-        3.) Compile the full tensors into one pdf image.
+        1. Generate the fibres (matrix slices) of the input/weight/output tensors.
+        2. Combine the fibres into the full tensors.
+        3. Compile the full tensors into one pdf image.
 
         Args:
             compile: Whether to compile the TikZ code into a pdf image. Default: `True`.
@@ -136,7 +136,7 @@ class TikzConv2d:
 \end{document}"""
         code = TEX_TEMPLATE.replace("DATAPATH", self.savedir)
         savepath = path.join(self.savedir, "example.tex")
-        self.write(code, savepath, compile=compile)
+        write(code, savepath, compile=compile)
 
     def _generate_fibres(self, compile: bool) -> None:
         """Visualize the input/output/weight fibres.
@@ -260,7 +260,7 @@ TENSOR
         }
         code = self._combine_fibres_into_tensor(dims, filenames)
         savepath = path.join(tensordir, "output.tex")
-        self.write(code, savepath, compile=compile)
+        write(code, savepath, compile=compile)
 
         # combine the input fibres into a tensor
         dims = (self.N, self.G, self.C_in // self.G)
@@ -270,7 +270,7 @@ TENSOR
         }
         code = self._combine_fibres_into_tensor(dims, filenames)
         savepath = path.join(tensordir, "input.tex")
-        self.write(code, savepath, compile=compile)
+        write(code, savepath, compile=compile)
 
         # combine the weight fibres into a tensor
         dims = (self.C_out // self.G, self.G, self.C_in // self.G)
@@ -282,7 +282,7 @@ TENSOR
         }
         code = self._combine_fibres_into_tensor(dims, filenames)
         savepath = path.join(tensordir, "weight.tex")
-        self.write(code, savepath, compile=compile)
+        write(code, savepath, compile=compile)
 
     def highlight_padding(self, matrix: TikzMatrix, color: str = "VectorBlue"):
         """Highlight the padding pixels in a TikZ matrix of a 2d slice of the input.
@@ -362,20 +362,6 @@ TENSOR
             + f"({x}, {y}) rectangle ++(1, 1);"
         )
 
-    @staticmethod
-    def write(content: str, savepath: str, compile: bool = True):
-        """Write content to a file and compile it using pdflatex.
-
-        Args:
-            content: Content to write.
-            savepath: Path to save the content.
-            compile: Whether to compile the content using pdflatex. Default: `True`.
-        """
-        with open(savepath, "w") as f:
-            f.write(content)
-        if compile:
-            run(["pdflatex", "-output-directory", path.dirname(savepath), savepath])
-
 
 class TikzConv2dAnimated(TikzConv2d):
     """Class for visualizing animated 2d convolutions with TikZ.
@@ -395,6 +381,11 @@ class TikzConv2dAnimated(TikzConv2d):
 
     - Example animation (padding pixels are highlighted)
       ![](assets/TikzConv2dAnimated/example.gif)
+      If you set `compile=True` above, there will be an `example.pdf` file in the
+      supplied directory. You can compile it to a `.gif` using the command
+      ```bash
+      convert -verbose -delay 100 -loop 0 -density 300 example.pdf example.gif`
+      ```
     - I used this code to create the visualizations for my
       [talk](https://pirsa.org/23120027) at Perimeter Institute.
 
@@ -409,9 +400,9 @@ class TikzConv2dAnimated(TikzConv2d):
 
         This is done in three steps. For each frame:
 
-        1.) Generate the fibres (matrix slices) of the input/weight/output tensors.
-        2.) Combine the fibres into the full tensors.
-        3.) Compile the full tensors into one pdf image.
+        1. Generate the fibres (matrix slices) of the input/weight/output tensors.
+        2. Combine the fibres into the full tensors.
+        3. Compile the full tensors into one pdf image.
 
         Args:
             compile: Whether to compile the TikZ code into a pdf image. Default: `True`.
@@ -450,7 +441,7 @@ CONTENT
             "CONTENT", "\n".join(frames)
         )
         savepath = path.join(self.savedir, "example.tex")
-        self.write(code, savepath, compile=compile)
+        write(code, savepath, compile=compile)
 
     def _generate_fibres(  # noqa: C901
         self, compile: bool = True, max_frames: Optional[int] = None
@@ -608,7 +599,7 @@ CONTENT
             }
             code = self._combine_fibres_into_tensor(dims, filenames)
             savepath = path.join(tensordir, f"output_frame_{frame}.tex")
-            self.write(code, savepath, compile=compile)
+            write(code, savepath, compile=compile)
 
             # plot the input fibres for the current frame
             dims = (self.N, self.G, self.C_in // self.G)
@@ -621,7 +612,7 @@ CONTENT
             }
             code = self._combine_fibres_into_tensor(dims, filenames)
             savepath = path.join(tensordir, f"input_frame_{frame}.tex")
-            self.write(code, savepath, compile=compile)
+            write(code, savepath, compile=compile)
 
             # plot the weight fibres for the current frame
             dims = (self.C_out // self.G, self.G, self.C_in // self.G)
@@ -634,4 +625,4 @@ CONTENT
             }
             code = self._combine_fibres_into_tensor(dims, filenames)
             savepath = path.join(tensordir, f"weight_frame_{frame}.tex")
-            self.write(code, savepath, compile=compile)
+            write(code, savepath, compile=compile)
