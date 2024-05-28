@@ -12,7 +12,7 @@ def write(code: str, savepath: str, compile: bool = True) -> None:
         savepath: The path to save the TikZ code to.
         compile: Whether to compile the TikZ code to a PDF.
     """
-    savedir = path.dirname(path.abspath(savepath))
+    savedir = path.dirname(savepath)
     makedirs(savedir, exist_ok=True)
 
     with open(savepath, "w") as f:

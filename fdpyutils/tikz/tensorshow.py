@@ -88,7 +88,7 @@ PLACEHOLDER
             savepath: The path under which the tensor will be saved.
             compile: Whether to compile the TikZ code into a pdf image.
         """
-        fibresdir = path.join(path.basename(savepath), "fibres")
+        fibresdir = path.join(path.dirname(savepath), "fibres")
         D1, D2, D3, _, _ = self.tensor.shape
 
         for d1, d2, d3 in product(range(D1), range(D2), range(D3)):
@@ -102,7 +102,7 @@ PLACEHOLDER
             savepath: The path where the TikZ code will be stored.
             compile: Whether to compile the TikZ code into a pdf image.
         """
-        fibresdir = path.join(path.basename(savepath), "fibres")
+        fibresdir = path.join(path.dirname(savepath), "fibres")
         D1, D2, D3, _, _ = self.tensor.shape
 
         # first dimension is laid out vertically
