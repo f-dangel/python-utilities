@@ -2,7 +2,7 @@
 
 from itertools import product
 from os import path
-from typing import Union
+from typing import Dict, List, Tuple, Union
 
 from numpy import ndarray
 from torch import Tensor
@@ -23,8 +23,10 @@ class TikzTensor:
         >>> shape = Size((1, 2, 3, 4, 10))
         >>> tensor = linspace(0, 1, shape.numel()).reshape(shape)
         >>> savepath = "tensor.tex"
+        >>> tikz_tensor = TikzTensor(tensor)
+        >>> tikz_tensor.highlight((0, 0, 0, 3, 1), fill="green", fill_opacity=0.5)
         >>> # NOTE to compile, you need `pdflatex`
-        >>> TikzTensor(tensor).save(savepath, compile=False)
+        >>> tikz_tensor.save(savepath, compile=False)
 
     - Example image
       ![](assets/TikzTensor.png)
@@ -62,6 +64,42 @@ PLACEHOLDER
         shape = (1,) * missing + tensor.shape
         self.tensor = tensor.reshape(shape)
 
+        # stores the style of highlighted pixels
+        self.highlighted_entries: List[Tuple[Tuple[int, int, int], Dict]] = []
+
+    def highlight(
+        self,
+        idx: Tuple[int, ...],
+        fill: str = "VectorOrange",
+        fill_opacity: float = 0.5,
+    ) -> None:
+        """Highlight a pixel in the tensor.
+
+        Args:
+            idx: The index of the pixel to highlight.
+            fill: colour to fill the pixel with. Default: `'VectorOrange'`.
+            fill_opacity: opacity of the highlighting. Default: `0.5`.
+
+        Raises:
+            ValueError: if the index has incorrect dimensions or is out of bounds.
+        """
+        if len(idx) < len(self.tensor.shape):
+            idx = (0,) * (len(self.tensor.shape) - len(idx)) + idx
+        if len(idx) > len(self.tensor.shape):
+            raise ValueError(
+                f"Index ({len(idx)}d) has more dimensions than tensor ({len(idx)}d)."
+            )
+        if any(i >= s for i, s in zip(idx, self.tensor.shape)):
+            raise ValueError(
+                f"Index {idx} is out of bounds for tensor shape {self.tensor.shape}."
+            )
+
+        d1, d2, d3, d4, d5 = idx
+        style = {"column": d5, "row": d4, "fill": fill, "fill_opacity": fill_opacity}
+        entry = ((d1, d2, d3), style)
+        if entry not in self.highlighted_entries:
+            self.highlighted_entries.append(entry)
+
     def save(self, savepath: str, compile: bool = True) -> None:
         """Save the TikZ code to visualize the tensor to a file and maybe compile it.
 
@@ -89,11 +127,19 @@ PLACEHOLDER
             compile: Whether to compile the TikZ code into a pdf image.
         """
         fibresdir = path.join(path.dirname(savepath), "fibres")
+        prefix, _ = path.splitext(path.basename(savepath))
         D1, D2, D3, _, _ = self.tensor.shape
 
         for d1, d2, d3 in product(range(D1), range(D2), range(D3)):
-            savepath = path.join(fibresdir, f"fibre_{d1}_{d2}_{d3}.tex")
-            custom_tikz_matrix(self.tensor[d1, d2, d3]).save(savepath, compile=compile)
+            savepath = path.join(fibresdir, f"{prefix}_fibre_{d1}_{d2}_{d3}.tex")
+            tikz_matrix = custom_tikz_matrix(self.tensor[d1, d2, d3])
+
+            # apply highlighting to pixels in the current fibre
+            for pos, style in self.highlighted_entries:
+                if pos == (d1, d2, d3):
+                    tikz_matrix.highlight(**style)
+
+            tikz_matrix.save(savepath, compile=compile)
 
     def _combine_fibres(self, savepath: str, compile: bool = True) -> None:
         """Create TikZ image that lays out the tensor's fibres and maybe compile.
@@ -103,6 +149,7 @@ PLACEHOLDER
             compile: Whether to compile the TikZ code into a pdf image.
         """
         fibresdir = path.join(path.dirname(savepath), "fibres")
+        prefix, _ = path.splitext(path.basename(savepath))
         D1, D2, D3, _, _ = self.tensor.shape
 
         # first dimension is laid out vertically
@@ -111,7 +158,7 @@ PLACEHOLDER
             # second and third dimensions are laid out depthwise
             depthwise = []
             for d2, d3 in product(list(range(D2))[::-1], list(range(D3))[::-1]):
-                fibre = path.join(fibresdir, f"fibre_{d1}_{d2}_{d3}.pdf")
+                fibre = path.join(fibresdir, f"{prefix}_fibre_{d1}_{d2}_{d3}.pdf")
                 xshift = (1.6 + 0.6 * (D3 - 1)) * d2 + 0.6 * d3
                 yshift = (2 + 0.8 * (D3 - 1)) * d2 + 0.8 * d3
                 depthwise.append(
