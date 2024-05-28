@@ -1,8 +1,7 @@
 """Visualizing 2d convolution with TikZ."""
 
 from itertools import product
-from os import makedirs, path
-from subprocess import run
+from os import path
 from typing import Dict, Optional, Tuple
 
 from einconv import index_pattern
@@ -10,7 +9,8 @@ from einops import einsum, rearrange
 from torch import Tensor
 from torch.nn.functional import pad
 
-from fdpyutils.tikz.matshow import TikzMatrix
+from fdpyutils.tikz.matshow import TikzMatrix, custom_tikz_matrix
+from fdpyutils.tikz.utils import write
 
 
 class TikzConv2d:
@@ -106,9 +106,9 @@ class TikzConv2d:
 
         This is done in three steps:
 
-        1.) Generate the fibres (matrix slices) of the input/weight/output tensors.
-        2.) Combine the fibres into the full tensors.
-        3.) Compile the full tensors into one pdf image.
+        1. Generate the fibres (matrix slices) of the input/weight/output tensors.
+        2. Combine the fibres into the full tensors.
+        3. Compile the full tensors into one pdf image.
 
         Args:
             compile: Whether to compile the TikZ code into a pdf image. Default: `True`.
@@ -136,7 +136,7 @@ class TikzConv2d:
 \end{document}"""
         code = TEX_TEMPLATE.replace("DATAPATH", self.savedir)
         savepath = path.join(self.savedir, "example.tex")
-        self.write(code, savepath, compile=compile)
+        write(code, savepath, compile=compile)
 
     def _generate_fibres(self, compile: bool) -> None:
         """Visualize the input/output/weight fibres.
@@ -149,7 +149,6 @@ class TikzConv2d:
             compile: Whether to compile the TikZ code into a pdf image.
         """
         fibresdir = path.join(self.savedir, "static_fibres")
-        makedirs(fibresdir, exist_ok=True)
 
         N_range = list(range(self.N))
         G_range = list(range(self.G))
@@ -159,7 +158,7 @@ class TikzConv2d:
         # plot the input fibres
         for n, g, c_in in product(N_range, G_range, C_in_range):
             savepath = path.join(fibresdir, f"input_n_{n}_g_{g}_c_in_{c_in}.tex")
-            matrix = self.custom_tikz_matrix(self.x[n, g, c_in])
+            matrix = custom_tikz_matrix(self.x[n, g, c_in])
             self.highlight_padding(matrix)
             matrix.save(savepath, compile=compile)
 
@@ -168,16 +167,14 @@ class TikzConv2d:
             savepath = path.join(
                 fibresdir, f"weight_g_{g}_c_out_{c_out}_c_in_{c_in}.tex"
             )
-            self.custom_tikz_matrix(self.weight[g, c_out, c_in]).save(
+            custom_tikz_matrix(self.weight[g, c_out, c_in]).save(
                 savepath, compile=compile
             )
 
         # plot the output fibres
         for n, g, c_out in product(N_range, G_range, C_out_range):
             savepath = path.join(fibresdir, f"output_n_{n}_g_{g}_c_out_{c_out}.tex")
-            self.custom_tikz_matrix(self.output[n, g, c_out]).save(
-                savepath, compile=compile
-            )
+            custom_tikz_matrix(self.output[n, g, c_out]).save(savepath, compile=compile)
 
     @staticmethod
     def _combine_fibres_into_tensor(
@@ -245,7 +242,6 @@ TENSOR
         """
         fibresdir = path.join(self.savedir, "static_fibres")
         tensordir = path.join(self.savedir, "static_tensors")
-        makedirs(tensordir, exist_ok=True)
 
         N_range = list(range(self.N))
         G_range = list(range(self.G))
@@ -260,7 +256,7 @@ TENSOR
         }
         code = self._combine_fibres_into_tensor(dims, filenames)
         savepath = path.join(tensordir, "output.tex")
-        self.write(code, savepath, compile=compile)
+        write(code, savepath, compile=compile)
 
         # combine the input fibres into a tensor
         dims = (self.N, self.G, self.C_in // self.G)
@@ -270,7 +266,7 @@ TENSOR
         }
         code = self._combine_fibres_into_tensor(dims, filenames)
         savepath = path.join(tensordir, "input.tex")
-        self.write(code, savepath, compile=compile)
+        write(code, savepath, compile=compile)
 
         # combine the weight fibres into a tensor
         dims = (self.C_out // self.G, self.G, self.C_in // self.G)
@@ -282,7 +278,7 @@ TENSOR
         }
         code = self._combine_fibres_into_tensor(dims, filenames)
         savepath = path.join(tensordir, "weight.tex")
-        self.write(code, savepath, compile=compile)
+        write(code, savepath, compile=compile)
 
     def highlight_padding(self, matrix: TikzMatrix, color: str = "VectorBlue"):
         """Highlight the padding pixels in a TikZ matrix of a 2d slice of the input.
@@ -316,31 +312,6 @@ TENSOR
         return (tensor - tensor.min()) / (tensor.max() - tensor.min())
 
     @staticmethod
-    def custom_tikz_matrix(mat: Tensor) -> TikzMatrix:
-        """Create `TikzMatrix` object with custom settings for visualizing matrices.
-
-        We specify the colour map and add colour definitions to the preamble which
-        are used for highlighting pixels.
-
-        Args:
-            mat: Matrix to visualize.
-
-        Returns:
-            `TikzMatrix` object with custom settings for visualizing the matrix.
-        """
-        matrix = TikzMatrix(mat)
-        matrix.colormap = "colormap/Greys"
-        matrix.extra_preamble.extend(
-            [
-                r"\definecolor{VectorBlue}{RGB}{59, 69, 227}",
-                r"\definecolor{VectorPink}{RGB}{253, 8, 238}",
-                r"\definecolor{VectorOrange}{RGB}{250, 173, 26}"
-                r"\definecolor{VectorTeal}{RGB}{82, 199, 222}",
-            ]
-        )
-        return matrix
-
-    @staticmethod
     def highlight(
         matrix: TikzMatrix,
         x: int,
@@ -362,20 +333,6 @@ TENSOR
             + f"({x}, {y}) rectangle ++(1, 1);"
         )
 
-    @staticmethod
-    def write(content: str, savepath: str, compile: bool = True):
-        """Write content to a file and compile it using pdflatex.
-
-        Args:
-            content: Content to write.
-            savepath: Path to save the content.
-            compile: Whether to compile the content using pdflatex. Default: `True`.
-        """
-        with open(savepath, "w") as f:
-            f.write(content)
-        if compile:
-            run(["pdflatex", "-output-directory", path.dirname(savepath), savepath])
-
 
 class TikzConv2dAnimated(TikzConv2d):
     """Class for visualizing animated 2d convolutions with TikZ.
@@ -395,6 +352,11 @@ class TikzConv2dAnimated(TikzConv2d):
 
     - Example animation (padding pixels are highlighted)
       ![](assets/TikzConv2dAnimated/example.gif)
+      If you set `compile=True` above, there will be an `example.pdf` file in the
+      supplied directory. You can compile it to a `.gif` using the command
+      ```bash
+      convert -verbose -delay 100 -loop 0 -density 300 example.pdf example.gif`
+      ```
     - I used this code to create the visualizations for my
       [talk](https://pirsa.org/23120027) at Perimeter Institute.
 
@@ -409,9 +371,9 @@ class TikzConv2dAnimated(TikzConv2d):
 
         This is done in three steps. For each frame:
 
-        1.) Generate the fibres (matrix slices) of the input/weight/output tensors.
-        2.) Combine the fibres into the full tensors.
-        3.) Compile the full tensors into one pdf image.
+        1. Generate the fibres (matrix slices) of the input/weight/output tensors.
+        2. Combine the fibres into the full tensors.
+        3. Compile the full tensors into one pdf image.
 
         Args:
             compile: Whether to compile the TikZ code into a pdf image. Default: `True`.
@@ -450,7 +412,7 @@ CONTENT
             "CONTENT", "\n".join(frames)
         )
         savepath = path.join(self.savedir, "example.tex")
-        self.write(code, savepath, compile=compile)
+        write(code, savepath, compile=compile)
 
     def _generate_fibres(  # noqa: C901
         self, compile: bool = True, max_frames: Optional[int] = None
@@ -474,7 +436,6 @@ CONTENT
             )
 
         fibresdir = path.join(self.savedir, "animated_fibres")
-        makedirs(fibresdir, exist_ok=True)
 
         N_range = list(range(self.N))
         G_range = list(range(self.G))
@@ -511,7 +472,7 @@ CONTENT
                 savepath = path.join(
                     fibresdir, f"output_n_{n}_g_{g}_c_out_{c_out}_frame_{frame}.tex"
                 )
-                matrix = self.custom_tikz_matrix(output[n, g, c_out])
+                matrix = custom_tikz_matrix(output[n, g, c_out])
 
                 # highlight currently computed entry
                 highlighted = (
@@ -529,7 +490,7 @@ CONTENT
                 savepath = path.join(
                     fibresdir, f"input_n_{n}_g_{g}_c_in_{c_in}_frame_{frame}.tex"
                 )
-                matrix = self.custom_tikz_matrix(self.x[n, g, c_in])
+                matrix = custom_tikz_matrix(self.x[n, g, c_in])
                 self.highlight_padding(matrix)
 
                 # highlight active entries
@@ -556,7 +517,7 @@ CONTENT
                     fibresdir,
                     f"weight_g_{g}_c_out_{c_out}_c_in_{c_in}_frame_{frame}.tex",
                 )
-                matrix = self.custom_tikz_matrix(self.weight[g, c_out, c_in])
+                matrix = custom_tikz_matrix(self.weight[g, c_out, c_in])
                 # highlight active entries
                 highlighted = (
                     [
@@ -581,7 +542,6 @@ CONTENT
         """
         fibresdir = path.join(self.savedir, "animated_fibres")
         tensordir = path.join(self.savedir, "animated_tensors")
-        makedirs(tensordir, exist_ok=True)
 
         N_range = list(range(self.N))
         G_range = list(range(self.G))
@@ -608,7 +568,7 @@ CONTENT
             }
             code = self._combine_fibres_into_tensor(dims, filenames)
             savepath = path.join(tensordir, f"output_frame_{frame}.tex")
-            self.write(code, savepath, compile=compile)
+            write(code, savepath, compile=compile)
 
             # plot the input fibres for the current frame
             dims = (self.N, self.G, self.C_in // self.G)
@@ -621,7 +581,7 @@ CONTENT
             }
             code = self._combine_fibres_into_tensor(dims, filenames)
             savepath = path.join(tensordir, f"input_frame_{frame}.tex")
-            self.write(code, savepath, compile=compile)
+            write(code, savepath, compile=compile)
 
             # plot the weight fibres for the current frame
             dims = (self.C_out // self.G, self.G, self.C_in // self.G)
@@ -634,4 +594,4 @@ CONTENT
             }
             code = self._combine_fibres_into_tensor(dims, filenames)
             savepath = path.join(tensordir, f"weight_frame_{frame}.tex")
-            self.write(code, savepath, compile=compile)
+            write(code, savepath, compile=compile)

@@ -1,12 +1,12 @@
 """Contains functionality to visualize matrices."""
 
 from itertools import product
-from os import path
-from subprocess import run
 from typing import Union
 
 from numpy import ndarray
 from torch import Tensor
+
+from fdpyutils.tikz.utils import write
 
 
 class TikzMatrix:
@@ -175,14 +175,29 @@ PLACEHOLDER_EXTRA_COMMANDS
         ]:
             template = template.replace(placeholder, replacement)
 
-        with open(savepath, "w") as f:
-            f.write(template)
+        write(template, savepath, compile=compile)
 
-        if compile:
-            cmd = [
-                "pdflatex",
-                "-output-directory",
-                path.dirname(savepath),
-                path.basename(savepath),
-            ]
-            run(cmd, check=True)
+
+def custom_tikz_matrix(mat: Tensor) -> TikzMatrix:
+    """Create `TikzMatrix` object with custom settings for visualizing matrices.
+
+    We specify the colour map and add colour definitions to the preamble which
+    are used for highlighting pixels.
+
+    Args:
+        mat: Matrix to visualize.
+
+    Returns:
+        `TikzMatrix` object with custom settings for visualizing the matrix.
+    """
+    matrix = TikzMatrix(mat)
+    matrix.colormap = "colormap/Greys"
+    matrix.extra_preamble.extend(
+        [
+            r"\definecolor{VectorBlue}{RGB}{59, 69, 227}",
+            r"\definecolor{VectorPink}{RGB}{253, 8, 238}",
+            r"\definecolor{VectorOrange}{RGB}{250, 173, 26}"
+            r"\definecolor{VectorTeal}{RGB}{82, 199, 222}",
+        ]
+    )
+    return matrix
