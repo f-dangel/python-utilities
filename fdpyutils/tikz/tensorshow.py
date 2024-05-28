@@ -19,7 +19,7 @@ class TikzTensor:
             with content before compilation.
 
     Examples:
-        >>> from torch import linspace, Sizee
+        >>> from torch import linspace, Size
         >>> shape = Size((1, 2, 3, 4, 10))
         >>> tensor = linspace(0, 1, shape.numel()).reshape(shape)
         >>> savepath = "tensor.tex"
