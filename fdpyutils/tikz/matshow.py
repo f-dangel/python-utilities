@@ -176,3 +176,28 @@ PLACEHOLDER_EXTRA_COMMANDS
             template = template.replace(placeholder, replacement)
 
         write(template, savepath, compile=compile)
+
+
+def custom_tikz_matrix(mat: Tensor) -> TikzMatrix:
+    """Create `TikzMatrix` object with custom settings for visualizing matrices.
+
+    We specify the colour map and add colour definitions to the preamble which
+    are used for highlighting pixels.
+
+    Args:
+        mat: Matrix to visualize.
+
+    Returns:
+        `TikzMatrix` object with custom settings for visualizing the matrix.
+    """
+    matrix = TikzMatrix(mat)
+    matrix.colormap = "colormap/Greys"
+    matrix.extra_preamble.extend(
+        [
+            r"\definecolor{VectorBlue}{RGB}{59, 69, 227}",
+            r"\definecolor{VectorPink}{RGB}{253, 8, 238}",
+            r"\definecolor{VectorOrange}{RGB}{250, 173, 26}"
+            r"\definecolor{VectorTeal}{RGB}{82, 199, 222}",
+        ]
+    )
+    return matrix

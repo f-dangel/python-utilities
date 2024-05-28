@@ -7,7 +7,7 @@ from typing import Union
 from numpy import ndarray
 from torch import Tensor
 
-from fdpyutils.tikz.matshow import TikzMatrix
+from fdpyutils.tikz.matshow import custom_tikz_matrix
 from fdpyutils.tikz.utils import write
 
 
@@ -98,9 +98,7 @@ PLACEHOLDER
 
         for d1, d2, d3 in product(range(D1), range(D2), range(D3)):
             savepath = path.join(fibresdir, f"fibre_{d1}_{d2}_{d3}.tex")
-            self.custom_tikz_matrix(self.tensor[d1, d2, d3]).save(
-                savepath, compile=compile
-            )
+            custom_tikz_matrix(self.tensor[d1, d2, d3]).save(savepath, compile=compile)
 
     def _combine_fibres(self, savepath: str, compile: bool = True) -> None:
         """Create TikZ image that lays out the tensor's fibres and maybe compile.
@@ -140,28 +138,3 @@ TENSOR
 
         code = self.TEMPLATE.replace("PLACEHOLDER", "\n".join(vertical))
         write(code, savepath, compile=compile)
-
-    @staticmethod
-    def custom_tikz_matrix(mat: Tensor) -> TikzMatrix:
-        """Create `TikzMatrix` object with custom settings for visualizing matrices.
-
-        We specify the colour map and add colour definitions to the preamble which
-        are used for highlighting pixels.
-
-        Args:
-            mat: Matrix to visualize.
-
-        Returns:
-            `TikzMatrix` object with custom settings for visualizing the matrix.
-        """
-        matrix = TikzMatrix(mat)
-        matrix.colormap = "colormap/Greys"
-        matrix.extra_preamble.extend(
-            [
-                r"\definecolor{VectorBlue}{RGB}{59, 69, 227}",
-                r"\definecolor{VectorPink}{RGB}{253, 8, 238}",
-                r"\definecolor{VectorOrange}{RGB}{250, 173, 26}"
-                r"\definecolor{VectorTeal}{RGB}{82, 199, 222}",
-            ]
-        )
-        return matrix

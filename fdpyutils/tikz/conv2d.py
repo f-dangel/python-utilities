@@ -9,7 +9,7 @@ from einops import einsum, rearrange
 from torch import Tensor
 from torch.nn.functional import pad
 
-from fdpyutils.tikz.matshow import TikzMatrix
+from fdpyutils.tikz.matshow import TikzMatrix, custom_tikz_matrix
 from fdpyutils.tikz.utils import write
 
 
@@ -159,7 +159,7 @@ class TikzConv2d:
         # plot the input fibres
         for n, g, c_in in product(N_range, G_range, C_in_range):
             savepath = path.join(fibresdir, f"input_n_{n}_g_{g}_c_in_{c_in}.tex")
-            matrix = self.custom_tikz_matrix(self.x[n, g, c_in])
+            matrix = custom_tikz_matrix(self.x[n, g, c_in])
             self.highlight_padding(matrix)
             matrix.save(savepath, compile=compile)
 
@@ -168,16 +168,14 @@ class TikzConv2d:
             savepath = path.join(
                 fibresdir, f"weight_g_{g}_c_out_{c_out}_c_in_{c_in}.tex"
             )
-            self.custom_tikz_matrix(self.weight[g, c_out, c_in]).save(
+            custom_tikz_matrix(self.weight[g, c_out, c_in]).save(
                 savepath, compile=compile
             )
 
         # plot the output fibres
         for n, g, c_out in product(N_range, G_range, C_out_range):
             savepath = path.join(fibresdir, f"output_n_{n}_g_{g}_c_out_{c_out}.tex")
-            self.custom_tikz_matrix(self.output[n, g, c_out]).save(
-                savepath, compile=compile
-            )
+            custom_tikz_matrix(self.output[n, g, c_out]).save(savepath, compile=compile)
 
     @staticmethod
     def _combine_fibres_into_tensor(
@@ -314,31 +312,6 @@ TENSOR
             Normalized tensor.
         """
         return (tensor - tensor.min()) / (tensor.max() - tensor.min())
-
-    @staticmethod
-    def custom_tikz_matrix(mat: Tensor) -> TikzMatrix:
-        """Create `TikzMatrix` object with custom settings for visualizing matrices.
-
-        We specify the colour map and add colour definitions to the preamble which
-        are used for highlighting pixels.
-
-        Args:
-            mat: Matrix to visualize.
-
-        Returns:
-            `TikzMatrix` object with custom settings for visualizing the matrix.
-        """
-        matrix = TikzMatrix(mat)
-        matrix.colormap = "colormap/Greys"
-        matrix.extra_preamble.extend(
-            [
-                r"\definecolor{VectorBlue}{RGB}{59, 69, 227}",
-                r"\definecolor{VectorPink}{RGB}{253, 8, 238}",
-                r"\definecolor{VectorOrange}{RGB}{250, 173, 26}"
-                r"\definecolor{VectorTeal}{RGB}{82, 199, 222}",
-            ]
-        )
-        return matrix
 
     @staticmethod
     def highlight(
@@ -502,7 +475,7 @@ CONTENT
                 savepath = path.join(
                     fibresdir, f"output_n_{n}_g_{g}_c_out_{c_out}_frame_{frame}.tex"
                 )
-                matrix = self.custom_tikz_matrix(output[n, g, c_out])
+                matrix = custom_tikz_matrix(output[n, g, c_out])
 
                 # highlight currently computed entry
                 highlighted = (
@@ -520,7 +493,7 @@ CONTENT
                 savepath = path.join(
                     fibresdir, f"input_n_{n}_g_{g}_c_in_{c_in}_frame_{frame}.tex"
                 )
-                matrix = self.custom_tikz_matrix(self.x[n, g, c_in])
+                matrix = custom_tikz_matrix(self.x[n, g, c_in])
                 self.highlight_padding(matrix)
 
                 # highlight active entries
@@ -547,7 +520,7 @@ CONTENT
                     fibresdir,
                     f"weight_g_{g}_c_out_{c_out}_c_in_{c_in}_frame_{frame}.tex",
                 )
-                matrix = self.custom_tikz_matrix(self.weight[g, c_out, c_in])
+                matrix = custom_tikz_matrix(self.weight[g, c_out, c_in])
                 # highlight active entries
                 highlighted = (
                     [
