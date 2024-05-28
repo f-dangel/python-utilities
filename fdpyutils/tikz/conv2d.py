@@ -1,7 +1,7 @@
 """Visualizing 2d convolution with TikZ."""
 
 from itertools import product
-from os import makedirs, path
+from os import path
 from typing import Dict, Optional, Tuple
 
 from einconv import index_pattern
@@ -149,7 +149,6 @@ class TikzConv2d:
             compile: Whether to compile the TikZ code into a pdf image.
         """
         fibresdir = path.join(self.savedir, "static_fibres")
-        makedirs(fibresdir, exist_ok=True)
 
         N_range = list(range(self.N))
         G_range = list(range(self.G))
@@ -243,7 +242,6 @@ TENSOR
         """
         fibresdir = path.join(self.savedir, "static_fibres")
         tensordir = path.join(self.savedir, "static_tensors")
-        makedirs(tensordir, exist_ok=True)
 
         N_range = list(range(self.N))
         G_range = list(range(self.G))
@@ -438,7 +436,6 @@ CONTENT
             )
 
         fibresdir = path.join(self.savedir, "animated_fibres")
-        makedirs(fibresdir, exist_ok=True)
 
         N_range = list(range(self.N))
         G_range = list(range(self.G))
@@ -545,7 +542,6 @@ CONTENT
         """
         fibresdir = path.join(self.savedir, "animated_fibres")
         tensordir = path.join(self.savedir, "animated_tensors")
-        makedirs(tensordir, exist_ok=True)
 
         N_range = list(range(self.N))
         G_range = list(range(self.G))

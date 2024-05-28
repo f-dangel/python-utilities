@@ -1,7 +1,7 @@
 """Contains functionality to visualize tensors."""
 
 from itertools import product
-from os import makedirs, path
+from os import path
 from typing import Union
 
 from numpy import ndarray
@@ -74,13 +74,10 @@ PLACEHOLDER
             savepath: The path to save the TikZ code to.
             compile: Whether to compile the TikZ code to a PDF.
         """
-        savedir = path.basename(savepath)
-        makedirs(savedir, exist_ok=True)
-
-        self._generate_fibres(savedir, compile=compile)
+        self._generate_fibres(savepath, compile=compile)
         self._combine_fibres(savepath, compile=compile)
 
-    def _generate_fibres(self, savedir: str, compile: bool) -> None:
+    def _generate_fibres(self, savepath: str, compile: bool) -> None:
         """Visualize the tensor fibres.
 
         A fibre is a tensors slice of dimension 2. TikZ code for fibres is generated
@@ -88,12 +85,10 @@ PLACEHOLDER
         `fibres` sub-directory.
 
         Args:
-            savedir: The directory where the fibres will be saved.
+            savepath: The path under which the tensor will be saved.
             compile: Whether to compile the TikZ code into a pdf image.
         """
-        fibresdir = path.join(savedir, "fibres")
-        makedirs(fibresdir, exist_ok=True)
-
+        fibresdir = path.join(path.basename(savepath), "fibres")
         D1, D2, D3, _, _ = self.tensor.shape
 
         for d1, d2, d3 in product(range(D1), range(D2), range(D3)):
