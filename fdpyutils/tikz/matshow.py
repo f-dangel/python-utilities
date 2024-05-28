@@ -20,8 +20,10 @@ class TikzMatrix:
         >>> from numpy import linspace
         >>> mat = linspace(0, 1, num=30).reshape(3, 10)
         >>> savepath = "mat.tex"
+        >>> tikz_mat = TikzMatrix(mat)
+        >>> tikz_mat.highlight(1, 0, fill="blue", fill_opacity=0.5)
         >>> # NOTE to compile, you need `pdflatex`
-        >>> TikzMatrix(mat).save(savepath, compile=False)
+        >>> tikz_mat.save(savepath, compile=False)
 
     - Example image
       ![](assets/TikzMatrix.png)
@@ -113,6 +115,22 @@ PLACEHOLDER_EXTRA_COMMANDS
 
         self.extra_commands = []
         self.extra_preamble = []
+
+    def highlight(
+        self, column: int, row: int, fill: str = "red", fill_opacity: float = 0.5
+    ) -> None:
+        """Highlight a pixel in the matrix.
+
+        Args:
+            column: column index of the pixel to highlight.
+            row: row index of the pixel to highlight.
+            fill: colour to fill the pixel with. Default: `'red'`.
+            fill_opacity: opacity of the highlighting. Default: `0.5`.
+        """
+        self.extra_commands.append(
+            rf"\draw [line width=0, fill={fill}, fill opacity={fill_opacity}] "
+            + f"({column}, {row}) rectangle ++(1, 1);"
+        )
 
     def save(self, savepath: str, compile: bool = False):
         """Save the matrix plot as standalone TikZ figure and maybe build to pdf.
