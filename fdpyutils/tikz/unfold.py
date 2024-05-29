@@ -82,7 +82,7 @@ class TikzUnfoldAnimated(TikzConv2dAnimated):
 
         This is done in two steps. For each frame:
 
-        1. Generate the individual tensors..
+        1. Generate the individual tensors.
         2. Compile the full tensors into one pdf image.
 
         Args:
