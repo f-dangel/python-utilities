@@ -249,9 +249,10 @@ class TikzUnfoldWeightAnimated(TikzUnfoldAnimated):
         >>> P = (1, 0)
         >>> weight = rand(C_out, C_in // G, K1, K2)
         >>> x = rand(N, C_in, I1, I2)
-        >>> savedir = path.join(DOC_ASSETS_DIR, "TikzUnfoldWeightAnimated")
         >>> # NOTE to compile, you need `pdflatex`
-        >>> TikzUnfoldWeightAnimated(weight, x, savedir, padding=P).save(compile=False)
+        >>> TikzUnfoldWeightAnimated(weight, x, "unfold_weight", padding=P).save(
+        ...    compile=False
+        ... )
 
     - Example animation (left is vectorized output, middle is unfolded kernel, right
       is vectorized input)
