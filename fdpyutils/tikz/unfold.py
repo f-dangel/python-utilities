@@ -25,11 +25,19 @@ class TikzUnfoldAnimated(TikzConv2dAnimated):
         >>> weight = rand(C_out, C_in // G, K1, K2)
         >>> x = rand(N, C_in, I1, I2)
         >>> # NOTE to compile, you need `pdflatex`
-        >>> TikzUnfoldAnimated(weight, x, "unfold", padding=P).save(compile=False)
+        >>> TikzUnfoldAnimated(weight, x, "unfold", padding=P).save(
+        ...     compile=False, max_frames=10
+        ... )
 
     - Example animation (left is matricized output, middle is matricized kernel, right
       is unfolded input)
       ![](assets/TikzUnfoldAnimated/example.gif)
+      If you set `compile=True` above, there will be an `example.pdf` file in the
+      supplied directory. You can compile it to a `.gif` using the command
+      ```bash
+      convert -verbose -delay 100 -loop 0 -density 300 example.pdf example.gif
+      ```
+      which requires the `imagemagick` library.
     - I used this code to create the visualizations for my
       [talk](https://pirsa.org/23120027) at Perimeter Institute.
     """

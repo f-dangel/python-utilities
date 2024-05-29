@@ -206,8 +206,9 @@ class TikzConv2dAnimated(TikzConv2d):
       If you set `compile=True` above, there will be an `example.pdf` file in the
       supplied directory. You can compile it to a `.gif` using the command
       ```bash
-      convert -verbose -delay 100 -loop 0 -density 300 example.pdf example.gif`
+      convert -verbose -delay 100 -loop 0 -density 300 example.pdf example.gif
       ```
+      which requires the `imagemagick` library.
     - I used this code to create the visualizations for my
       [talk](https://pirsa.org/23120027) at Perimeter Institute.
 
