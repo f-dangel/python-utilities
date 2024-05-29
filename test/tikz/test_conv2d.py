@@ -1,8 +1,12 @@
 """Test visualization of 2d convolution."""
 
 from os import path
-from subprocess import run
-from test.utils import DOC_ASSETS_DIR, RUNNING_IN_CI, convert_pdf_to_png
+from test.utils import (
+    DOC_ASSETS_DIR,
+    RUNNING_IN_CI,
+    convert_pdf_to_gif,
+    convert_pdf_to_png,
+)
 
 from torch import manual_seed, rand
 
@@ -38,18 +42,4 @@ def test_TikzConv2dAnimated():
         compile=not RUNNING_IN_CI, max_frames=10
     )
     if not RUNNING_IN_CI:
-        # create animation (NOTE: `convert` requires `imagemagick` library)
-        run(
-            [
-                "convert",
-                "-verbose",
-                "-delay",
-                "100",
-                "-loop",
-                "0",
-                "-density",
-                "300",
-                path.join(savedir, "example.pdf"),
-                path.join(savedir, "example.gif"),
-            ]
-        )
+        convert_pdf_to_gif(path.join(savedir, "example.pdf"))
