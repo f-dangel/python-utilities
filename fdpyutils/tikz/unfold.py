@@ -236,3 +236,180 @@ CONTENT
                 for n, g, c in product(range(N), range(G), range(C_in // G)):
                     c_in_k1_k2 = c * K1 * K2 + k1 * k2 + k2
                     tensor.highlight((n, g, c_in_k1_k2, o1_o2), fill=color)
+
+
+class TikzUnfoldWeightAnimated(TikzUnfoldAnimated):
+    """Class for visualizing kernel unfolding of a 2d convolution with TikZ.
+
+    Examples:
+        >>> from torch import manual_seed, rand
+        >>> _ = manual_seed(0)
+        >>> N, C_in, I1, I2 = 1, 2, 5, 1
+        >>> G, C_out, K1, K2 = 1, 3, 4, 1
+        >>> P = (1, 0)
+        >>> weight = rand(C_out, C_in // G, K1, K2)
+        >>> x = rand(N, C_in, I1, I2)
+        >>> savedir = path.join(DOC_ASSETS_DIR, "TikzUnfoldWeightAnimated")
+        >>> # NOTE to compile, you need `pdflatex`
+        >>> TikzUnfoldWeightAnimated(weight, x, savedir, padding=P).save(compile=False)
+
+    - Example animation (left is vectorized output, middle is unfolded kernel, right
+      is vectorized input)
+      ![](assets/TikzUnfoldWeightAnimated/example.gif)
+      If you set `compile=True` above, there will be an `example.pdf` file in the
+      supplied directory. You can compile it to a `.gif` using the command
+      ```bash
+      convert -verbose -delay 100 -loop 0 -density 300 example.pdf example.gif
+      ```
+      which requires the `imagemagick` library.
+    - I used this code to create the visualizations for my
+      [talk](https://pirsa.org/23120027) at Perimeter Institute.
+    """
+
+    def __init__(
+        self,
+        weight: Tensor,
+        x: Tensor,
+        savedir: str,
+        stride: Tuple[int, int] = (1, 1),
+        padding: Tuple[int, int] = (0, 0),
+        dilation: Tuple[int, int] = (1, 1),
+    ):
+        """Store convolution hyper-parameters for the animated input unfolding.
+
+        Args:
+            weight: Convolution kernel. Has shape `[C_out, C_in // G, K1, K2]`.
+            x: Input tensor. Has shape `[N, C_in, I1, I2]`.
+            savedir: Directory under which the TikZ code and pdf images are saved.
+            stride: Stride of the convolution. Default: `(1, 1)`.
+            padding: Padding of the convolution. Default: `(0, 0)`.
+            dilation: Dilation of the convolution. Default: `(1, 1)`.
+        """
+        super().__init__(
+            weight, x, savedir, stride=stride, padding=padding, dilation=dilation
+        )
+        self.x_as_vec = rearrange(self.x, "n g c i1 i2 -> n g (c i1 i2)")
+        self.weight_unfolded = einsum(
+            self.pattern1.float(),
+            self.pattern2.float(),
+            self.weight,
+            "k1 o1 i1, k2 o2 i2, g c_out c_in k1 k2 -> g (c_out o1 o2) (c_in i1 i2)",
+        )
+        self.output_as_vec = rearrange(
+            self.output, "n g c_out o1 o2 -> n g (c_out o1 o2)"
+        )
+
+    def _generate_tensors(
+        self, compile: bool = True, max_frames: Optional[int] = None
+    ) -> None:
+        """Visualize vectorized output+input and unfolded weight during convolution.
+
+        This generates frames that can be arranged into an animation.
+
+        Args:
+            compile: Whether to compile the generated frames to pdf. Default: `True`.
+            max_frames: Maximum number of frames to generate. If `None, all frames are
+                generated. Default: `None`.
+
+        Raises:
+            ValueError: If there are not enough colours to distinguish all groups.
+        """
+        if self.G > len(self.GROUP_COLORS):
+            raise ValueError(
+                f"Not enough colours available to distinguish groups ({self.G}). "
+                + f"Please add more to `GROUP_COLORS` (has {len(self.GROUP_COLORS)})."
+            )
+
+        tensordir = path.join(self.savedir, "tensors")
+
+        N_range = list(range(self.N))
+        G_range = list(range(self.G))
+        C_out_range = list(range(self.C_out // self.G))
+        O1_range = list(range(self.O1))
+        O2_range = list(range(self.O2))
+
+        # frames of output, parameterized by which entries have been computed
+        for frame, (o2, o1, g, c_out, n) in enumerate(
+            product(O2_range, O1_range, G_range, C_out_range, N_range)
+        ):
+            if max_frames is not None and frame + 1 > max_frames:
+                break
+
+            channel_color = self.GROUP_COLORS[g]
+            c_out_o1_o2 = c_out * self.O1 * self.O2 + o1 * self.O2 + o2
+
+            # zero out the entries that have not yet been computed
+            output_as_vec = rearrange(
+                self.output_as_vec,
+                "n g (c_out o1 o2) -> (o2 o1 g c_out n)",
+                c_out=self.C_out // self.G,
+                o1=self.O1,
+                o2=self.O2,
+            ).clone()
+            output_as_vec[frame + 1 :] = 0
+            output_as_vec = rearrange(
+                output_as_vec,
+                "(o2 o1 g c_out n) -> n g (c_out o1 o2)",
+                n=self.N,
+                g=self.G,
+                c_out=self.C_out // self.G,
+                o1=self.O1,
+                o2=self.O2,
+            )
+
+            # plot the vectorized output
+            output_tikz = TikzTensor(output_as_vec.unsqueeze(-1))
+            # highlight the current output pixel
+            output_tikz.highlight((n, g, c_out_o1_o2, 0), fill=channel_color)
+            output_tikz.save(
+                path.join(tensordir, f"output_frame_{frame}.tex"), compile=compile
+            )
+
+            # plot the vectorized input
+            x_tikz = TikzTensor(self.x_as_vec.unsqueeze(-1))
+            self.highlight_padding(x_tikz)
+            # highlight entire vector
+            for c_in_i1_i2 in range(
+                self.C_in // self.G * (self.I1 + 2 * self.P1) * (self.I2 + 2 * self.P2)
+            ):
+                x_tikz.highlight((n, g, c_in_i1_i2, 0), fill=channel_color)
+            x_tikz.save(
+                path.join(tensordir, f"input_frame_{frame}.tex"), compile=compile
+            )
+
+            # plot the matricized weight
+            w_tikz = TikzTensor(self.weight_unfolded)
+            # highlight row c_out_o1_o2
+            for c_in_i1_i2 in range(
+                self.C_in // self.G * (self.I1 + 2 * self.P1) * (self.I2 + 2 * self.P2)
+            ):
+                w_tikz.highlight((g, c_out_o1_o2, c_in_i1_i2), fill=channel_color)
+            w_tikz.save(
+                path.join(tensordir, f"weight_frame_{frame}.tex"), compile=compile
+            )
+
+    def highlight_padding(self, tensor: TikzTensor, color: str = "VectorBlue"):
+        """Highlight the padding pixels in the unfolded input.
+
+        Args:
+            tensor: The vectorized input TikZ tensor whose padded pixels are
+                highlighted.
+            color: Colour to highlight the padding pixels with. Defaults to
+                `"VectorBlue"`.
+        """
+        # for shorter notation
+        I1, I2 = self.I1, self.I2
+        P1, P2 = self.P1, self.P2
+        N, G, C_in = self.N, self.G, self.C_in
+        I1_eff, I2_eff = I1 + 2 * P1, I2 + 2 * P2
+
+        i1_i2 = {
+            (i1, i2)
+            for i1, i2 in product(range(I1_eff), range(I2_eff))
+            if i1 < P1 or i1 >= P1 + I1 or i2 < P2 or i2 >= P2 + I2
+        }
+
+        for i1, i2 in i1_i2:
+            for n, g, c in product(range(N), range(G), range(C_in // G)):
+                c_in_i1_i2 = c * I1_eff * I2_eff + i1 * I2_eff + i2
+                tensor.highlight((n, g, c_in_i1_i2, 0), fill=color)

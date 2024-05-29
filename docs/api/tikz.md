@@ -20,3 +20,8 @@
     options:
       members:
       - save
+
+::: fdpyutils.tikz.unfold.TikzUnfoldWeightAnimated
+    options:
+      members:
+      - save
