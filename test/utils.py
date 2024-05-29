@@ -1,6 +1,7 @@
 """Utility functions for testing."""
 
 from os import getenv, path
+from subprocess import run
 from typing import List
 
 from pdf2image import convert_from_path
@@ -33,3 +34,29 @@ def convert_pdf_to_png(pdf_path: str) -> List[str]:
         image.save(filename)
 
     return filenames
+
+
+def convert_pdf_to_gif(pdf_path: str):
+    """Convert a PDF to a GIF.
+
+    Note:
+        This requires the `imagemagick` library.
+
+    Args:
+        pdf_path: Path to the PDF file containing one frame per page.
+    """
+    gif_path = pdf_path.replace(".pdf", ".gif")
+    run(
+        [
+            "convert",
+            "-verbose",
+            "-delay",
+            "100",
+            "-loop",
+            "0",
+            "-density",
+            "300",
+            pdf_path,
+            gif_path,
+        ]
+    )

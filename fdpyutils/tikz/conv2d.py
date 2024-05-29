@@ -158,7 +158,7 @@ class TikzConv2d:
         """Highlight the padding pixels of a TikZ tensor.
 
         Args:
-            tensor: The TikZ tensor whose padded pizels will be highlighted.
+            tensor: The TikZ tensor whose padded pixels will be highlighted.
             color: Colour to highlight the padding pixels with. Defaults to
                 `"VectorBlue"`.
         """
