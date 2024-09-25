@@ -25,7 +25,7 @@ def best_kronecker(
 
     Raises:
         ValueError: If A is not a matrix.
-        ValueErrror: If B_shape or C_shape are not 2-tuples.
+        ValueError: If B_shape or C_shape are not 2-tuples.
         ValueError: If the shapes multiply to the incorrect total dimension.
     """
     if A.ndim != 2:
