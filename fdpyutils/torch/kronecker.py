@@ -9,9 +9,11 @@ from torch import Tensor
 def best_kronecker(
     A: Tensor, B_shape: Tuple[int, int], C_shape: Tuple[int, int]
 ) -> Tuple[Tensor, Tensor, Tensor]:
-    """Find the best approximation α (B ⊗ C) of A (in terms of Frobenius norm).
+    r"""Find the best approximation $\alpha (B \otimes C)$ of A.
 
-    See https://typeset.io/pdf/approximation-with-kronecker-products-24urjmqom7.pdf
+    'Best' means in terms of Frobenius norm. Computes an SVD of $A$.
+    See [this paper](\
+    https://typeset.io/pdf/approximation-with-kronecker-products-24urjmqom7.pdf)
     for details.
 
     Args:
@@ -20,12 +22,12 @@ def best_kronecker(
         C_shape: The shape of the second tensor in the Kronecker product.
 
     Returns:
-        The scalar α and the matrices B and C such that α (B ⊗ C) is the best Kronecker
-        approximation of A.
+        The scalar $\alpha$ and the matrices $B, C$ such that $\alpha (B \otimes C)$
+            is the best Kronecker approximation of $A$.
 
     Raises:
         ValueError: If A is not a matrix.
-        ValueError: If B_shape or C_shape are not 2-tuples.
+        ValueError: If `B_shape` or `C_shape` are not 2-tuples.
         ValueError: If the shapes multiply to the incorrect total dimension.
     """
     if A.ndim != 2:
