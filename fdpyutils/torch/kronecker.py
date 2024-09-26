@@ -9,7 +9,7 @@ from torch import Tensor
 def best_kronecker(
     A: Tensor, B_shape: Tuple[int, int], C_shape: Tuple[int, int]
 ) -> Tuple[Tensor, Tensor, Tensor]:
-    r"""Find the best approximation $\alpha (B \otimes C)$ of A.
+    r"""Find the best approximation $\alpha (B \otimes C)$ of $A$.
 
     'Best' means in terms of Frobenius norm. Computes an SVD of $A$.
     See [this paper](\
@@ -29,6 +29,17 @@ def best_kronecker(
         ValueError: If A is not a matrix.
         ValueError: If `B_shape` or `C_shape` are not 2-tuples.
         ValueError: If the shapes multiply to the incorrect total dimension.
+
+    Examples:
+        >>> from torch import kron, rand, manual_seed
+        >>> _ = manual_seed(0) # make deterministic
+        >>> # generate a random Kronecker product
+        >>> shape_B, shape_C = (2, 3), (4, 5)
+        >>> A = kron(rand(*shape_B), rand(*shape_C))
+        >>> # find the best Kronecker approximation and check reconstruction matches
+        >>> alpha, B, C = best_kronecker(A, shape_B, shape_C)
+        >>> A.allclose(alpha * kron(B, C))
+        True
     """
     if A.ndim != 2:
         raise ValueError(f"A must be a matrix (2d). Got {A.ndim}d.")
