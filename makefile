@@ -11,8 +11,6 @@ help:
 	@echo "        Install only the testing tools (included in install-dev)"
 	@echo "test"
 	@echo "        Run pytest on test and report coverage"
-	@echo "test-light"
-	@echo "        Run pytest on the light part of test and report coverage"
 	@echo "install-lint"
 	@echo "        Install only the linter tools (included in install-dev)"
 	@echo "black"
@@ -53,12 +51,7 @@ install-dev:
 install-test:
 	@pip install -e ."[test]"
 
-.PHONY: test test-light
-
 test:
-	@pytest -vx --run-optional-tests=expensive --cov=fdpyutils --doctest-modules test fdpyutils
-
-test-light:
 	@pytest -vx --cov=fdpyutils --doctest-modules test fdpyutils
 
 .PHONY: install-lint
