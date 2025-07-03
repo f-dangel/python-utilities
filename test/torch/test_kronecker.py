@@ -54,11 +54,19 @@ B_C_IDS = [
     for B_shape, C_shape in B_C_SHAPES
 ]
 
+SVD_BACKENDS = ["torch", "scipy"]
+SVD_BACKEND_IDS = [f"svd_backend={b}" for b in SVD_BACKENDS]
 
+
+@mark.parametrize("svd_backend", SVD_BACKENDS, ids=SVD_BACKEND_IDS)
 @mark.parametrize("B_shape, C_shape", B_C_SHAPES, ids=B_C_IDS)
 @mark.parametrize("dev", DEVICES, ids=DEVICE_IDS)
 def test_best_kronecker(
-    B_shape: Tuple[int, int], C_shape: Tuple[int, int], dev: device, dt: dtype = float64
+    B_shape: Tuple[int, int],
+    C_shape: Tuple[int, int],
+    dev: device,
+    svd_backend: str,
+    dt: dtype = float64,
 ):
     """Test finding the best Kronecker approximation B ⊗ C of a matrix A.
 
@@ -68,6 +76,7 @@ def test_best_kronecker(
         B_shape: The shape of the first tensor in the Kronecker product.
         C_shape: The shape of the second tensor in the Kronecker product.
         dev: The device to run the test on.
+        svd_backend: The backend to use for SVD.
         dt: The data type to run the test in. Default is `float64`.
     """
     manual_seed(0)
@@ -79,7 +88,7 @@ def test_best_kronecker(
     # fit best Kronecker using LBFGS
     B_fit, C_fit = fit_best_kronecker(A, B_shape, C_shape)
     # compute best Kronecker using top singular vector
-    alpha, B, C = best_kronecker(A, B_shape, C_shape)
+    alpha, B, C = best_kronecker(A, B_shape, C_shape, svd_backend=svd_backend)
 
     # compare
     best = alpha * kron(B, C)
